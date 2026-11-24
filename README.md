@@ -14,9 +14,12 @@ Lightweight, ad-free native Android client designed for **Android TV** and **TV 
 ---
 
 ## Download & Installation
-1. Go to the [**Actions**](../../actions) tab (or [**Releases**](../../releases) if published).
-2. Open the latest green workflow run (**Build Universal IPTV APK**) and download **`iptv-org-TV-Android9+`** under **Artifacts**.
-3. Extract `app-release.apk` and install it on your Android TV / TV Box (`adb install -r app-release.apk` or via any file manager).
+1. Go to the [**Releases**](../../releases/latest) page and download **`iptv-org_TV_v1.0_Android9+.apk`** directly under **Assets**.
+2. Transfer the APK to your Android TV / TV Box (or download it directly on the device) and install it via any file manager or ADB:
+   ```bash
+   adb install -r iptv-org_TV_v1.0_Android9+.apk
+   ```
+   *(Enable "Install unknown apps" for your file manager or browser if prompted).*
 
 ---
 
