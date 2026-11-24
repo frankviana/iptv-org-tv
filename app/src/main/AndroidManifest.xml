@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://android.com">
+<manifest xmlns:android="http://android.com"
+    xmlns:tools="http://android.com">
+    <uses-sdk tools:overrideLibrary="androidx.media3.exoplayer,androidx.media3.exoplayer.hls,androidx.media3.ui,androidx.media3.common,androidx.media3.datasource,androidx.media3.extractor,androidx.media3.decoder,androidx.media3.database,androidx.media3.container" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
