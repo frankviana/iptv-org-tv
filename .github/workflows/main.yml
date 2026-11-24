@@ -9,34 +9,35 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Write valid AndroidManifest.xml
+      - name: Generate AndroidManifest.xml
         run: |
-          python3 -c '
-          xml = """<?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://android.com">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-feature android:name="android.software.leanback" android:required="false" />
-              <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+          python3 - << 'PY'
+          p = "android" + ":"
+          xml = f"""<?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:{p[:-1]}="http://android.com">
+              <uses-permission {p}name="android.permission.INTERNET" />
+              <uses-feature {p}name="android.software.leanback" {p}required="false" />
+              <uses-feature {p}name="android.hardware.touchscreen" {p}required="false" />
               <application
-                  android:allowBackup="true"
-                  android:label="iptv-org TV"
-                  android:usesCleartextTraffic="true"
-                  android:theme="@style/Theme.AppCompat.NoActionBar">
+                  {p}allowBackup="true"
+                  {p}label="iptv-org TV"
+                  {p}usesCleartextTraffic="true"
+                  {p}theme="@style/Theme.AppCompat.NoActionBar">
                   <activity
-                      android:name="com.knarf.iptvorgtv.MainActivity"
-                      android:exported="true"
-                      android:screenOrientation="landscape">
+                      {p}name="com.knarf.iptvorgtv.MainActivity"
+                      {p}exported="true"
+                      {p}screenOrientation="landscape">
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                          <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                          <action {p}name="android.intent.action.MAIN" />
+                          <category {p}name="android.intent.category.LAUNCHER" />
+                          <category {p}name="android.intent.category.LEANBACK_LAUNCHER" />
                       </intent-filter>
                   </activity>
               </application>
           </manifest>
           """
           open("app/src/main/AndroidManifest.xml", "w").write(xml)
-          '
+          PY
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
