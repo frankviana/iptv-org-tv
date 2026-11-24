@@ -22,6 +22,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.zip.GZIPInputStream
 import kotlin.concurrent.thread
 
 data class Channel(val group: String, val name: String, val url: String, val tvgId: String)
@@ -41,7 +42,7 @@ class MainActivity : AppCompatActivity() {
     private var selectedGroup = "Brazil"
     private var currentChannel: Channel? = null
 
-    private val epgHost = "https://" + "iptv-org" + ".github.io/epg/guides/"
+    private val epgHost = "https://" + "epgshare01" + ".online/epgshare01/"
     private val m3uHost = "https://" + "iptv-org" + ".github.io/iptv/"
     private val sources = mapOf("country" to "${m3uHost}index.country.m3u", "genre" to "${m3uHost}index.category.m3u", "language" to "${m3uHost}index.language.m3u")
 
@@ -70,21 +71,31 @@ class MainActivity : AppCompatActivity() {
         leftPane.addView(btnRow); leftPane.addView(actionRow); leftPane.addView(searchBox); leftPane.addView(statusText); leftPane.addView(recycler)
         val rightPane = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 0.60f); setBackgroundColor(Color.BLACK) }
         playerView = PlayerView(this).apply { layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f) }
-        epgBanner = TextView(this).apply { setBackgroundColor(Color.parseColor("#1E293B")); setTextColor(Color.parseColor("#E2E8F0")); setPadding(16, 10, 16, 10); textSize = 13f; text = "Selecione um canal para assistir (EPG automatico)" }
+        epgBanner = TextView(this).apply { setBackgroundColor(Color.parseColor("#1E293B")); setTextColor(Color.parseColor("#E2E8F0")); setPadding(16, 10, 16, 10); textSize = 13f; text = "Selecione um canal para assistir (EPG v1.2)" }
         rightPane.addView(playerView); rightPane.addView(epgBanner); root.addView(leftPane); root.addView(rightPane); setContentView(root)
         player = ExoPlayer.Builder(this).build().also { playerView.player = it }
         loadPlaylist(false)
     }
+    private fun normKey(s: String): String = s.substringBefore("@").lowercase().replace(Regex("[^a-z0-9]"), "")
+
     private fun epgUrlForGroup(grp: String): String {
         val g = grp.lowercase()
-        return when {
-            g.contains("brazil") || g.contains("portuguese") -> "${epgHost}br/mi.tv.epg.xml"
-            g.contains("portugal") -> "${epgHost}pt/meo.pt.epg.xml"
-            g.contains("spain") || g.contains("spanish") -> "${epgHost}es/movistarplus.es.epg.xml"
-            g.contains("argentina") -> "${epgHost}ar/mi.tv.epg.xml"
-            g.contains("mexico") -> "${epgHost}mx/gatotv.com.epg.xml"
-            else -> "${epgHost}us/tvguide.com.epg.xml"
+        val code = when {
+            g.contains("brazil") || g.contains("portuguese") -> "BR1"
+            g.contains("portugal") -> "PT1"
+            g.contains("spain") || g.contains("spanish") -> "ES1"
+            g.contains("argentina") -> "AR1"
+            g.contains("mexico") -> "MX1"
+            g.contains("chile") -> "CL1"
+            g.contains("colombia") -> "CO1"
+            g.contains("peru") -> "PE1"
+            g.contains("italy") || g.contains("italian") -> "IT1"
+            g.contains("france") || g.contains("french") -> "FR1"
+            g.contains("germany") || g.contains("german") -> "DE1"
+            g.contains("united kingdom") -> "UK1"
+            else -> "US2"
         }
+        return "${epgHost}epg_ripper_${code}.xml.gz"
     }
 
     private fun loadPlaylist(forceRefresh: Boolean) {
@@ -121,22 +132,25 @@ class MainActivity : AppCompatActivity() {
         val url = epgUrlForGroup(selectedGroup)
         thread {
             try {
-                val epgFile = File(cacheDir, "epg_${url.hashCode()}.xml")
+                val epgFile = File(cacheDir, "epg_gz_${url.hashCode()}.xml.gz")
                 if (forceRefresh || !epgFile.exists() || (System.currentTimeMillis() - epgFile.lastModified() > 21600_000L)) {
-                    val conn = (URL(url).openConnection() as HttpURLConnection).apply { connectTimeout = 15000; readTimeout = 20000 }
+                    val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                        setRequestProperty("User-Agent", "Mozilla/5.0")
+                        connectTimeout = 15000; readTimeout = 25000
+                    }
                     epgFile.writeBytes(conn.inputStream.readBytes())
                 }
                 val fmt = SimpleDateFormat("yyyyMMddHHmmss Z", Locale.US)
                 val map = mutableMapOf<String, MutableList<EpgProg>>()
                 val now = System.currentTimeMillis()
                 val parser = Xml.newPullParser()
-                epgFile.inputStream().use { input ->
+                GZIPInputStream(epgFile.inputStream().buffered()).use { input ->
                     parser.setInput(input, "UTF-8")
                     var event = parser.eventType; var chId = ""; var startMs = 0L; var stopMs = 0L; var title = ""
                     while (event != XmlPullParser.END_DOCUMENT) {
                         if (event == XmlPullParser.START_TAG) {
                             when (parser.name) {
-                                "programme" -> { chId = parser.getAttributeValue(null, "channel") ?: ""; startMs = try { fmt.parse(parser.getAttributeValue(null, "start") ?: "")?.time ?: 0L } catch (_: Exception) { 0L }; stopMs = try { fmt.parse(parser.getAttributeValue(null, "stop") ?: "")?.time ?: 0L } catch (_: Exception) { 0L }; title = "" }
+                                "programme" -> { chId = normKey(parser.getAttributeValue(null, "channel") ?: ""); startMs = try { fmt.parse(parser.getAttributeValue(null, "start") ?: "")?.time ?: 0L } catch (_: Exception) { 0L }; stopMs = try { fmt.parse(parser.getAttributeValue(null, "stop") ?: "")?.time ?: 0L } catch (_: Exception) { 0L }; title = "" }
                                 "title" -> if (chId.isNotEmpty() && stopMs > now - 3600_000L && startMs < now + 43200_000L) title = parser.nextText().trim()
                             }
                         } else if (event == XmlPullParser.END_TAG && parser.name == "programme") {
@@ -153,8 +167,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun nowNextText(tvgId: String): Pair<String, String> {
-        val list = epgMap[tvgId] ?: return "" to ""
+    private fun nowNextText(ch: Channel): Pair<String, String> {
+        val list = epgMap[normKey(ch.tvgId)] ?: epgMap[normKey(ch.name)] ?: return "" to ""
         val now = System.currentTimeMillis(); val hhmm = SimpleDateFormat("HH:mm", Locale.getDefault())
         val cur = list.firstOrNull { now in it.start..it.stop }?.let { "${hhmm.format(it.start)} ${it.title}" } ?: ""
         val nxt = list.firstOrNull { it.start > now }?.let { "${hhmm.format(it.start)} ${it.title}" } ?: ""
@@ -162,7 +176,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateBanner(ch: Channel) {
-        val (cur, nxt) = nowNextText(ch.tvgId)
+        val (cur, nxt) = nowNextText(ch)
         epgBanner.text = when {
             cur.isNotEmpty() && nxt.isNotEmpty() -> "${ch.name}  |  Agora: $cur  |  A Seguir: $nxt"
             cur.isNotEmpty() -> "${ch.name}  |  Agora: $cur"
@@ -186,7 +200,7 @@ class MainActivity : AppCompatActivity() {
             override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {
                 val ch = filtered[pos]; val box = h.itemView as LinearLayout
                 (box.getChildAt(0) as TextView).text = ch.name
-                val (cur, _) = nowNextText(ch.tvgId)
+                val (cur, _) = nowNextText(ch)
                 (box.getChildAt(1) as TextView).text = if (cur.isNotEmpty()) "Agora: $cur" else ""
                 box.setOnClickListener { playChannel(ch) }
             }
