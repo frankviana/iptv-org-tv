@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://android.com"
-    xmlns:tools="http://android.com">
-    <uses-sdk tools:overrideLibrary="androidx.media3.exoplayer,androidx.media3.exoplayer.hls,androidx.media3.ui,androidx.media3.common,androidx.media3.datasource,androidx.media3.extractor,androidx.media3.decoder,androidx.media3.database,androidx.media3.container" />
+<manifest xmlns:android="http://android.com">
+
     <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
     <application
         android:allowBackup="true"
         android:label="iptv-org TV"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.AppCompat.NoActionBar">
+
         <activity
-            android:name=".MainActivity"
+            android:name="com.knarf.iptvorgtv.MainActivity"
             android:exported="true"
             android:screenOrientation="landscape">
             <intent-filter>
@@ -20,5 +22,6 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
     </application>
 </manifest>
